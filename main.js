@@ -5,7 +5,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const subtitles = new RitualSubtitles(detector);
 
     const startBtn = document.getElementById('startBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const closeSettings = document.getElementById('closeSettings');
 
+    // Lógica de la app
     startBtn.addEventListener('click', async () => {
         if (detector.audioContext && detector.audioContext.state === 'suspended') {
             await detector.audioContext.resume();
@@ -21,10 +25,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         await detector.init();
         await ai.loadModel();
         
-        // Ya no necesitamos conectar nada extra aquí, el detector.init() maneja toda la cadena.
-
         spectrogram.start();
         subtitles.start();
         startBtn.innerText = "Stop Ritual";
+    });
+
+    // Lógica del Panel de Configuración
+    settingsBtn.addEventListener('click', () => settingsPanel.classList.remove('hidden'));
+    closeSettings.addEventListener('click', () => settingsPanel.classList.add('hidden'));
+
+    document.getElementById('sweepToggle').addEventListener('change', (e) => {
+        detector.updateSettings({ sweepEnabled: e.target.checked });
+    });
+
+    document.getElementById('sweepSpeed').addEventListener('input', (e) => {
+        detector.updateSettings({ sweepSpeed: parseInt(e.target.value) });
+    });
+
+    document.getElementById('noiseVol').addEventListener('input', (e) => {
+        detector.updateSettings({ noiseVolume: parseInt(e.target.value) / 100 });
+    });
+
+    document.getElementById('outVol').addEventListener('input', (e) => {
+        detector.updateSettings({ outputGain: parseInt(e.target.value) });
     });
 });
