@@ -7,7 +7,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const startBtn = document.getElementById('startBtn');
 
     startBtn.addEventListener('click', async () => {
-        if (detector.audioContext && detector.audioContext.state === 'running') {
+        // Forzar desbloqueo de audio en móviles
+        if (detector.audioContext && detector.audioContext.state === 'suspended') {
+            await detector.audioContext.resume();
+        }
+
+        if (detector.audioContext && detector.audioContext.state === 'running' && startBtn.innerText === "Stop Ritual") {
             spectrogram.stop();
             subtitles.stop();
             startBtn.innerText = "Start Ritual";
@@ -17,6 +22,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         await detector.init();
         await ai.loadModel();
         
+        // Forzar la salida de audio explícitamente
+        if (detector.audioContext.state === 'running') {
+             detector.bandpass.connect(detector.audioContext.destination);
+        }
+
         spectrogram.start();
         subtitles.start();
         startBtn.innerText = "Stop Ritual";
