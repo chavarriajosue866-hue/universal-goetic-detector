@@ -44,4 +44,4 @@ class GoetiaDetector {
         this.noiseGate.connect(this.audioContext.destination);
         }
     }
-}
+
