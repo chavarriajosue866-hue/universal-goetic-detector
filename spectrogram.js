@@ -23,9 +23,12 @@ class RitualSpectrogram {
         this.isRunning = false;
     }
 
-    async draw() {
+     async draw() {
         if (!this.isRunning) return;
         requestAnimationFrame(() => this.draw());
+
+        // ACTIVAR EL BARRIDO DEL SPIRIT BOX
+        this.detector.sweepFrequency();
 
         const bufferLength = this.detector.analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
