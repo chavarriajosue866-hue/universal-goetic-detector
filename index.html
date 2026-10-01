@@ -9,12 +9,32 @@
 </head>
 <body>
     <canvas id="spectrogram"></canvas>
-    
     <div id="subtitles"></div>
 
     <div id="controls">
         <button id="startBtn">Start Ritual</button>
+        <button id="settingsBtn">️ Settings</button>
         <span id="status">Idle</span>
+    </div>
+
+    <div id="settingsPanel" class="hidden">
+        <div class="setting-row">
+            <label>Sweep (Anti-Feedback)</label>
+            <input type="checkbox" id="sweepToggle" checked>
+        </div>
+        <div class="setting-row">
+            <label>Sweep Speed</label>
+            <input type="range" id="sweepSpeed" min="1" max="100" value="10">
+        </div>
+        <div class="setting-row">
+            <label>White Noise</label>
+            <input type="range" id="noiseVol" min="0" max="50" value="10">
+        </div>
+        <div class="setting-row">
+            <label>Output Volume</label>
+            <input type="range" id="outVol" min="1" max="30" value="8">
+        </div>
+        <button id="closeSettings">Close</button>
     </div>
 
     <script src="detector.js"></script>
