@@ -17,16 +17,16 @@ class GoetiaDetector {
         this.bandpass.frequency.value = 1500; 
         this.bandpass.Q.value = 0.4; 
 
-        // Filtros anti-feedback para altavoces
+        // Filtros anti-feedback ajustados para móviles
         this.highpass = this.audioContext.createBiquadFilter();
         this.highpass.type = 'highpass';
-        this.highpass.frequency.value = 500; // Elimina los graves que causan el acople
+        this.highpass.frequency.value = 100; // Bajado de 500 a 100 para no cortar la voz
 
         this.noiseGate = this.audioContext.createDynamicsCompressor();
-        this.noiseGate.threshold.value = -30; // Solo deja pasar sonidos fuertes
-        this.noiseGate.ratio.value = 12;
+        this.noiseGate.threshold.value = -60; // Menos agresivo (antes -30)
+        this.noiseGate.ratio.value = 4;       // Menos compresión
         this.noiseGate.attack.value = 0.003;
-        this.noiseGate.release.value = 0.1;
+        this.noiseGate.release.value = 0.25;
 
         this.audioStream = await navigator.mediaDevices.getUserMedia({ 
             audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } 
