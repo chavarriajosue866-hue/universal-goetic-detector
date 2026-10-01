@@ -2,8 +2,8 @@ class GoetiaDetector {
     constructor() {
         this.audioContext = null;
         this.analyser = null;
-        this.bandpass = null; 
-        this.outputBandpass = null; 
+        this.bandpass = null;
+        this.outputBandpass = null;
         this.limiter = null;
         this.gainNode = null;
         this.noiseGainNode = null;
@@ -11,7 +11,6 @@ class GoetiaDetector {
         this.currentEnergy = 0;
         this.sweepDirection = 1;
         
-        // Configuración por defecto (suave)
         this.settings = {
             sweepEnabled: true,
             sweepSpeed: 10,
@@ -35,7 +34,7 @@ class GoetiaDetector {
         this.outputBandpass = this.audioContext.createBiquadFilter();
         this.outputBandpass.type = 'bandpass';
         this.outputBandpass.frequency.value = 1000;
-        this.outputBandpass.Q.value = 1.0; // Q más bajo para que suene menos "wah"
+        this.outputBandpass.Q.value = 1.0;
 
         this.limiter = this.audioContext.createDynamicsCompressor();
         this.limiter.threshold.value = -10;
@@ -50,7 +49,9 @@ class GoetiaDetector {
         const bufferSize = 2 * this.audioContext.sampleRate;
         const noiseBuffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
         const output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
         
         this.whiteNoise = this.audioContext.createBufferSource();
         this.whiteNoise.buffer = noiseBuffer;
