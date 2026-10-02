@@ -5,7 +5,9 @@ class RitualSubtitles {
         this.recognition = null;
         this.isListening = false;
         this.hideTimeout = null;
-        this.currentLang = 'es-ES'; // Por defecto Español/Latín
+        this.restartTimeout = null;
+        this.currentText = ''; // Buffer para evitar glitch visual
+        this.currentLang = 'es-ES';
         
         this.initSpeechAPI();
     }
@@ -22,42 +24,68 @@ class RitualSubtitles {
         this.recognition.continuous = true;
         this.recognition.interimResults = true;
         this.recognition.lang = this.currentLang;
+        this.recognition.maxAlternatives = 1; // Reduce carga en el móvil
 
         this.recognition.onresult = (event) => {
+            let interimTranscript = '';
             let finalTranscript = '';
+
             for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
                 if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
+                    finalTranscript += transcript;
+                } else {
+                    interimTranscript += transcript;
                 }
             }
-            if (finalTranscript.trim().length > 0) { 
-                this.showSubtitle(finalTranscript);
+
+            // Actualizar buffer solo si hay texto final
+            if (finalTranscript) {
+                this.currentText += finalTranscript + ' ';
+                // Evitar que el texto se desborde en la pantalla del móvil
+                if (this.currentText.length > 120) {
+                    this.currentText = this.currentText.substring(this.currentText.indexOf(' ') + 1);
+                }
+            }
+
+            const displayText = this.currentText + interimTranscript;
+            if (displayText.trim().length > 0) { 
+                this.showSubtitle(displayText);
             }
         };
 
+        // Filtrar errores falsos de móviles
         this.recognition.onerror = (event) => {
-            if (event.error !== 'no-speech' && event.error !== 'aborted') {
-                console.error("Speech error:", event.error);
+            // 'no-speech' y 'aborted' son normales en móvil, los ignoramos
+            if (event.error === 'no-speech' || event.error === 'aborted') return;
+            
+            // Error de red (común en móviles), dejamos que onend lo reinicie
+            if (event.error === 'network') {
+                console.warn("Speech API network error, retrying...");
+                return; 
             }
+            console.error("Speech error:", event.error);
         };
         
+        // Reinicio con retraso (CRUCIAL para móviles)
         this.recognition.onend = () => {
             if (this.isListening) {
-                try { this.recognition.start(); } catch (e) {}
+                clearTimeout(this.restartTimeout);
+                // Esperar 500ms antes de reiniciar para evitar bucles infinitos que crashean el navegador
+                this.restartTimeout = setTimeout(() => {
+                    try { this.recognition.start(); } catch (e) {}
+                }, 500);
             }
         };
     }
 
     setLanguage(lang) {
         this.currentLang = lang;
+        this.currentText = ''; // Limpiar buffer al cambiar idioma
         if (this.recognition) {
             this.recognition.lang = lang;
-            // Reiniciar para aplicar el nuevo idioma
             if (this.isListening) {
                 try { this.recognition.stop(); } catch(e){}
-                setTimeout(() => {
-                    try { this.recognition.start(); } catch(e){}
-                }, 300);
             }
         }
     }
@@ -65,21 +93,30 @@ class RitualSubtitles {
     start() {
         if (!this.recognition) return;
         this.isListening = true;
+        this.currentText = '';
         try { this.recognition.start(); } catch (e) {}
     }
 
     stop() {
         this.isListening = false;
-        if (this.recognition) this.recognition.stop();
+        clearTimeout(this.restartTimeout);
+        if (this.recognition) {
+            try { this.recognition.stop(); } catch (e) {}
+        }
         this.subtitleEl.classList.remove('active');
     }
 
     showSubtitle(text) {
+        // Usar innerText en lugar de += para evitar duplicados visuales
         this.subtitleEl.innerText = text.trim().toUpperCase();
         this.subtitleEl.classList.add('active');
+        
         clearTimeout(this.hideTimeout);
         this.hideTimeout = setTimeout(() => {
-            this.subtitleEl.classList.remove('active');
+            // Solo ocultar si no hay texto nuevo
+            if (this.subtitleEl.innerText === text.trim().toUpperCase()) {
+                this.subtitleEl.classList.remove('active');
+            }
         }, 4000);
     }
 }
