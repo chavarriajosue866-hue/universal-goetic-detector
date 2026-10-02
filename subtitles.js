@@ -11,44 +11,49 @@ class RitualSubtitles {
 
     initSpeechAPI() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        // DIAGNÓSTICO 1: ¿Existe la API?
         if (!SpeechRecognition) {
-            console.error("Web Speech API no disponible");
+            this.subtitleEl.innerText = "ERROR: Tu navegador no soporta Web Speech API";
+            this.subtitleEl.classList.add('active');
             return;
         }
 
         this.recognition = new SpeechRecognition();
         this.recognition.continuous = true;
         this.recognition.interimResults = true;
-        
-        // Usamos en-US porque su modelo fonético es más "agresivo" 
-        // para mapear sonidos raros o desconocidos a palabras.
         this.recognition.lang = 'en-US'; 
 
         this.recognition.onresult = (event) => {
-            let interimTranscript = '';
             let finalTranscript = '';
-
             for (let i = event.resultIndex; i < event.results.length; i++) {
-                const transcript = event.results[i][0].transcript;
                 if (event.results[i].isFinal) {
-                    finalTranscript += transcript;
-                } else {
-                    interimTranscript += transcript;
+                    finalTranscript += event.results[i][0].transcript;
                 }
             }
-
-            const text = finalTranscript || interimTranscript;
-            
-            // ELIMINADO EL FILTRO DE ENERGÍA: Muestra TODO lo que la API crea escuchar.
-            if (text.trim().length > 0) { 
-                this.showSubtitle(text);
+            if (finalTranscript.trim().length > 0) { 
+                this.showSubtitle(finalTranscript);
             }
         };
 
+        // DIAGNÓSTICO 2: Errores de la API
         this.recognition.onerror = (event) => {
-            console.error("Speech error:", event.error);
+            let msg = `ERROR SPEECH: ${event.error}`;
+            if (event.error === 'no-speech') msg = "No se escuchó nada (ajusta volumen)";
+            if (event.error === 'audio-capture') msg = "ERROR: No se encuentra micrófono";
+            if (event.error === 'not-allowed') msg = "ERROR: Permiso de micrófono denegado";
+            
+            this.subtitleEl.innerText = msg;
+            this.subtitleEl.classList.add('active');
+            console.error("Speech Error:", event.error);
         };
         
+        this.recognition.onstart = () => {
+            this.subtitleEl.innerText = "ESCUCHANDO...";
+            this.subtitleEl.classList.add('active');
+            setTimeout(() => this.subtitleEl.classList.remove('active'), 2000);
+        };
+
         this.recognition.onend = () => {
             if (this.isListening) {
                 try { this.recognition.start(); } catch (e) {}
@@ -59,7 +64,12 @@ class RitualSubtitles {
     start() {
         if (!this.recognition) return;
         this.isListening = true;
-        try { this.recognition.start(); } catch (e) {}
+        try { 
+            this.recognition.start(); 
+        } catch (e) {
+            this.subtitleEl.innerText = "ERROR AL INICIAR: " + e.message;
+            this.subtitleEl.classList.add('active');
+        }
     }
 
     stop() {
@@ -69,12 +79,9 @@ class RitualSubtitles {
     }
 
     showSubtitle(text) {
-        // Muestra el texto tal cual la API lo interpreta fonéticamente
         this.subtitleEl.innerText = text.trim().toUpperCase();
         this.subtitleEl.classList.add('active');
-        
         clearTimeout(this.hideTimeout);
-        // Lo dejamos un poco más tiempo en pantalla para que alcances a leerlo
         this.hideTimeout = setTimeout(() => {
             this.subtitleEl.classList.remove('active');
         }, 4000);
