@@ -12,14 +12,17 @@ class RitualSubtitles {
     initSpeechAPI() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            console.warn("Speech Recognition not supported in this browser.");
+            console.error("Web Speech API no disponible");
             return;
         }
 
         this.recognition = new SpeechRecognition();
         this.recognition.continuous = true;
         this.recognition.interimResults = true;
-        this.recognition.lang = 'en-US'; // Cambia a 'es-ES' si prefieres español
+        
+        // Usamos en-US porque su modelo fonético es más "agresivo" 
+        // para mapear sonidos raros o desconocidos a palabras.
+        this.recognition.lang = 'en-US'; 
 
         this.recognition.onresult = (event) => {
             let interimTranscript = '';
@@ -36,27 +39,27 @@ class RitualSubtitles {
 
             const text = finalTranscript || interimTranscript;
             
-            // Solo mostrar si hay energía anómala en el audio (psicofonía)
-            if (text && this.detector.currentEnergy > 30) { 
+            // ELIMINADO EL FILTRO DE ENERGÍA: Muestra TODO lo que la API crea escuchar.
+            if (text.trim().length > 0) { 
                 this.showSubtitle(text);
             }
         };
 
-        this.recognition.onerror = (event) => console.error("Speech error:", event.error);
+        this.recognition.onerror = (event) => {
+            console.error("Speech error:", event.error);
+        };
         
         this.recognition.onend = () => {
-            if (this.isListening) this.recognition.start(); // Reiniciar si se detiene
+            if (this.isListening) {
+                try { this.recognition.start(); } catch (e) {}
+            }
         };
     }
 
     start() {
         if (!this.recognition) return;
         this.isListening = true;
-        try {
-            this.recognition.start();
-        } catch (e) {
-            console.log("Already listening");
-        }
+        try { this.recognition.start(); } catch (e) {}
     }
 
     stop() {
@@ -66,12 +69,14 @@ class RitualSubtitles {
     }
 
     showSubtitle(text) {
-        this.subtitleEl.innerText = text.toUpperCase();
+        // Muestra el texto tal cual la API lo interpreta fonéticamente
+        this.subtitleEl.innerText = text.trim().toUpperCase();
         this.subtitleEl.classList.add('active');
         
         clearTimeout(this.hideTimeout);
+        // Lo dejamos un poco más tiempo en pantalla para que alcances a leerlo
         this.hideTimeout = setTimeout(() => {
             this.subtitleEl.classList.remove('active');
-        }, 3000);
+        }, 4000);
     }
 }
