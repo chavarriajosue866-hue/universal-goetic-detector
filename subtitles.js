@@ -5,16 +5,15 @@ class RitualSubtitles {
         this.recognition = null;
         this.isListening = false;
         this.hideTimeout = null;
+        this.currentLang = 'es-ES'; // Por defecto Español/Latín
         
         this.initSpeechAPI();
     }
 
     initSpeechAPI() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        
-        // DIAGNÓSTICO 1: ¿Existe la API?
         if (!SpeechRecognition) {
-            this.subtitleEl.innerText = "ERROR: Tu navegador no soporta Web Speech API";
+            this.subtitleEl.innerText = "ERROR: Speech API no soportada";
             this.subtitleEl.classList.add('active');
             return;
         }
@@ -22,7 +21,7 @@ class RitualSubtitles {
         this.recognition = new SpeechRecognition();
         this.recognition.continuous = true;
         this.recognition.interimResults = true;
-        this.recognition.lang = 'en-US'; 
+        this.recognition.lang = this.currentLang;
 
         this.recognition.onresult = (event) => {
             let finalTranscript = '';
@@ -36,24 +35,12 @@ class RitualSubtitles {
             }
         };
 
-        // DIAGNÓSTICO 2: Errores de la API
         this.recognition.onerror = (event) => {
-            let msg = `ERROR SPEECH: ${event.error}`;
-            if (event.error === 'no-speech') msg = "No se escuchó nada (ajusta volumen)";
-            if (event.error === 'audio-capture') msg = "ERROR: No se encuentra micrófono";
-            if (event.error === 'not-allowed') msg = "ERROR: Permiso de micrófono denegado";
-            
-            this.subtitleEl.innerText = msg;
-            this.subtitleEl.classList.add('active');
-            console.error("Speech Error:", event.error);
+            if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                console.error("Speech error:", event.error);
+            }
         };
         
-        this.recognition.onstart = () => {
-            this.subtitleEl.innerText = "ESCUCHANDO...";
-            this.subtitleEl.classList.add('active');
-            setTimeout(() => this.subtitleEl.classList.remove('active'), 2000);
-        };
-
         this.recognition.onend = () => {
             if (this.isListening) {
                 try { this.recognition.start(); } catch (e) {}
@@ -61,15 +48,24 @@ class RitualSubtitles {
         };
     }
 
+    setLanguage(lang) {
+        this.currentLang = lang;
+        if (this.recognition) {
+            this.recognition.lang = lang;
+            // Reiniciar para aplicar el nuevo idioma
+            if (this.isListening) {
+                try { this.recognition.stop(); } catch(e){}
+                setTimeout(() => {
+                    try { this.recognition.start(); } catch(e){}
+                }, 300);
+            }
+        }
+    }
+
     start() {
         if (!this.recognition) return;
         this.isListening = true;
-        try { 
-            this.recognition.start(); 
-        } catch (e) {
-            this.subtitleEl.innerText = "ERROR AL INICIAR: " + e.message;
-            this.subtitleEl.classList.add('active');
-        }
+        try { this.recognition.start(); } catch (e) {}
     }
 
     stop() {
