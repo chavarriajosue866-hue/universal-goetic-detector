@@ -52,4 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('outVol').addEventListener('input', (e) => {
         detector.updateSettings({ outputGain: parseInt(e.target.value) });
     });
+        document.getElementById('evpMode').addEventListener('change', (e) => {
+        detector.updateSettings({ evpMode: e.target.checked });
+    });
 });
