@@ -26,15 +26,29 @@ class GoetiaDetector {
         this.analyser = this.audioContext.createAnalyser();
         this.analyser.fftSize = 2048;
 
+        // RUTA 1: Análisis (Limpia para la IA y Espectrograma)
         this.bandpass = this.audioContext.createBiquadFilter();
         this.bandpass.type = 'bandpass';
         this.bandpass.frequency.value = 1500; 
         this.bandpass.Q.value = 0.4; 
 
+        // RUTA 2: Salida de Audio (Spirit Box + Compresor EVP)
         this.outputBandpass = this.audioContext.createBiquadFilter();
         this.outputBandpass.type = 'bandpass';
         this.outputBandpass.frequency.value = 1000;
         this.outputBandpass.Q.value = 1.0;
+
+        // NUEVO: Compresor de Rango Dinámico (Hace que los susurros suenen fuertes)
+        this.evpCompressor = this.audioContext.createDynamicsCompressor();
+        this.evpCompressor.threshold.value = -60; // Captura sonidos ultra-bajos
+        this.evpCompressor.knee.value = 0;
+        this.evpCompressor.ratio.value = 20;      // Aplasta la diferencia entre ruido y voz
+        this.evpCompressor.attack.value = 0.001;
+        this.evpCompressor.release.value = 0.1;
+
+        // Ganancia extra para el modo sensible
+        this.evpGain = this.audioContext.createGain();
+        this.evpGain.gain.value = 1.0; // Se activará con el toggle
 
         this.limiter = this.audioContext.createDynamicsCompressor();
         this.limiter.threshold.value = -10;
@@ -46,12 +60,11 @@ class GoetiaDetector {
         this.gainNode = this.audioContext.createGain();
         this.gainNode.gain.value = this.settings.outputGain;
 
+        // Ruido Blanco
         const bufferSize = 2 * this.audioContext.sampleRate;
         const noiseBuffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
         const output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            output[i] = Math.random() * 2 - 1;
-        }
+        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
         
         this.whiteNoise = this.audioContext.createBufferSource();
         this.whiteNoise.buffer = noiseBuffer;
@@ -66,14 +79,18 @@ class GoetiaDetector {
 
         const source = this.audioContext.createMediaStreamSource(this.audioStream);
         
+        // Conexiones Ruta 1 (Análisis)
         source.connect(this.bandpass);
         this.bandpass.connect(this.analyser);
         
+        // Conexiones Ruta 2 (Salida con Compresor EVP)
         source.connect(this.outputBandpass);
         this.whiteNoise.connect(this.noiseGainNode);
         this.noiseGainNode.connect(this.outputBandpass);
         
-        this.outputBandpass.connect(this.gainNode);
+        this.outputBandpass.connect(this.evpCompressor);
+        this.evpCompressor.connect(this.evpGain);
+        this.evpGain.connect(this.gainNode);
         this.gainNode.connect(this.limiter);
         this.limiter.connect(this.audioContext.destination);
 
@@ -84,6 +101,12 @@ class GoetiaDetector {
         this.settings = { ...this.settings, ...newSettings };
         if (this.gainNode) this.gainNode.gain.value = this.settings.outputGain;
         if (this.noiseGainNode) this.noiseGainNode.gain.value = this.settings.noiseVolume;
+        
+        // Lógica del Modo Ultra-Sensible
+        if (this.evpGain) {
+            // Si está activo, multiplica la ganancia base por 4 para amplificar susurros
+            this.evpGain.gain.value = this.settings.evpMode ? 4.0 : 1.0;
+        }
     }
 
     sweepFrequency() {
