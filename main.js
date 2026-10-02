@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const settingsPanel = document.getElementById('settingsPanel');
     const closeSettings = document.getElementById('closeSettings');
 
-    // Lógica de la app
     startBtn.addEventListener('click', async () => {
         if (detector.audioContext && detector.audioContext.state === 'suspended') {
             await detector.audioContext.resume();
@@ -30,9 +29,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         startBtn.innerText = "Stop Ritual";
     });
 
-    // Lógica del Panel de Configuración
     settingsBtn.addEventListener('click', () => settingsPanel.classList.remove('hidden'));
     closeSettings.addEventListener('click', () => settingsPanel.classList.add('hidden'));
+
+    // Nuevo: Control del idioma
+    document.getElementById('langSelect').addEventListener('change', (e) => {
+        subtitles.setLanguage(e.target.value);
+    });
 
     document.getElementById('sweepToggle').addEventListener('change', (e) => {
         detector.updateSettings({ sweepEnabled: e.target.checked });
