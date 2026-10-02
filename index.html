@@ -13,11 +13,18 @@
 
     <div id="controls">
         <button id="startBtn">Start Ritual</button>
-        <button id="settingsBtn">️ Settings</button>
+        <button id="settingsBtn">⚙️ Settings</button>
         <span id="status">Idle</span>
     </div>
 
     <div id="settingsPanel" class="hidden">
+        <div class="setting-row">
+            <label>Idioma de Detección</label>
+            <select id="langSelect" style="background:#1a1a1a; color:#fff; border:1px solid #555; padding:5px;">
+                <option value="es-ES">Español / Latín</option>
+                <option value="en-US">Inglés (Fonético Agresivo)</option>
+            </select>
+        </div>
         <div class="setting-row">
             <label>Sweep (Anti-Feedback)</label>
             <input type="checkbox" id="sweepToggle" checked>
